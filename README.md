@@ -169,4 +169,4 @@ The table below shows the total number of guesses in the worst-case scenario for
 
 ## OK, I'm done reading. What should I do next? ##
 
-Well I'm no expert on that, but I suggest taking a look at my repository [Turing](github.com/danbriggs/Turing).
+Well I'm no expert on that, but I suggest taking a look at my repository [Turing](https://github.com/danbriggs/Turing).
