@@ -2,10 +2,10 @@
 all possible codes unless absolutely needed. Instead, we keep track of what the
 best result we could hope for is, and try to achieve it as quickly as possible.
 If it's not possible, then that's because there is a response to which all
-follow-ups require more than n (say) guesses. At *that* point, we have to
+follow-ups require more than m (say) guesses. At *that* point, we have to
 iterate through all the guesses, showing for each one that either the size of
 the largest cluster got is too big, or that some cluster requires more than
-n-1 guesses.
+m-1 guesses.
 
 Clearly, we can't *know* that the response requires too many guesses until we've
 tried to go through each process; each of the two distinct processes may be long,
@@ -32,7 +32,7 @@ class Situation:
         most goal further guesses."""
         global codelen
         if goal is None:
-            goal = ceil_log(triangle_num(codelen+1)-1,len(codelist))
+            goal = tweaked_ceil_log(triangle_num(codelen+1)-1,len(codelist))
             #For example, in the classic 6-color length-4 situation,
             #there are at most 14 possible responses to the first guess
             #since a response of (codelen - 1, 1) is impossible,
@@ -69,7 +69,7 @@ class Situation:
                     self.higuesses_dict[curr_result] = 0
         for k in self.results_dict:
             if k != (codelen,0):
-                self.loguesses_dict[k] = ceil_log(
+                self.loguesses_dict[k] = tweaked_ceil_log(
                     triangle_num(codelen+1)-1, len(self.results_dict[k]))+1
                 self.higuesses_dict[k] = len(self.results_dict[k])
             if len(self.results_dict[k]) == 2:
@@ -154,7 +154,7 @@ class Situation:
                 #print("Proceeding with situation:")
                 #bestSituation.pretty_print()
                 #print("Its goal is",bestSituation.goal)
-                bestHope = ceil_log(triangle_num(codelen+1)-1,bestTop) + 1
+                bestHope = tweaked_ceil_log(triangle_num(codelen+1)-1,bestTop) + 1
                 #print("and by math, the best we can hope for is",bestHope)
                 if bestSituation.goal < bestHope:
                     pass
@@ -294,10 +294,10 @@ class Situation:
         if critical:
             self.update_his()
             self.purge_children()
-            if level <= 1:
+            if self.level <= 1:
                 print("From critical compute end:")
                 self.pretty_print(order='hi_desc')
-                if level == 0:
+                if self.level == 0:
                     input("pause")
         elif not critical and do_recurse:
             #print("Now the situation is")
@@ -460,7 +460,19 @@ def ceil_log(b,x):
         prod *= b
         ans += 1
     return ans
-      
+
+def tweaked_ceil_log(b,x):
+    """This version acknowledges that "correct answer"
+    only ever makes a cluster of size 1."""
+    ans = 0
+    prod = 1
+    while prod < x:
+        prod *= b-1
+        prod += 1
+        ans += 1
+    return ans
+
+
 def dissolves(codelist,guess):
     results = []
     for code in codelist:
@@ -664,6 +676,28 @@ def descending_only(li):
             retlist.append(x)
     return retlist
 
+def attempt_to_win(sitList):
+    for sit in sitList:
+        sit.compute_nodes()
+        if sit.won():
+            sit.pretty_print()
+            print("Won!")
+            return True
+        else:
+            print("Max hi was",sit.maxhi(),"for situation with goal",sit.goal)
+            print("Moving on to next first guess.")
+    print("Attempting situations critically.")
+    for sit in sitList:
+        #print("Attempting situation non-critically:")
+        print("Attempting situation with max hi",sit.maxhi(),"critically.")
+        sit.pretty_print()
+        sit.compute_nodes(critical=True, use_symmetry = True)
+        sit.pretty_print(order='hi_desc')
+        if sit.won():
+            print("It was won!")
+            return True
+        #input("pause")
+    
 def main():
     global all_codes
     global colors
@@ -695,29 +729,17 @@ def main():
     print("There were",numConceivable,"distinct first guesses for which it is conceivable",
           "that they may be guaranteed to complete in",sitList[0].goal,"moves after the first move.")
     ans = input("Press enter to proceed.")
-    wasWon = False
     sitList.sort(key = lambda x: x.max_node_size)
-    for sit in sitList:
-        sit.compute_nodes()
-        if sit.won():
-            print("Won!")
-            wasWon = True
-            break
-        else:
-            print("Max hi was",sit.maxhi(),"for situation with goal",sit.goal)
-            print("Moving on to next first guess.")
+    wasWon = attempt_to_win(sitList)
     sitList.sort(key = lambda x: x.maxhi())
-    for sit in sitList:
-        #print("Attempting situation non-critically:")
-        print("Attempting situation with max hi",sit.maxhi(),"critically.")
-        sit.pretty_print()
-        sit.compute_nodes(critical=True, use_symmetry = True)
-        sit.pretty_print(order='hi_desc')
-        if sit.won():
-            print("It was won!")
-        input("pause")
-    #TODO: If wasWon is still False, then we have proved that the game cannot be guaranteed to end
+    #If wasWon is still False, then we have proved that the game cannot be guaranteed to end
     #in that many moves. Update goals by adding 1 to them, and try again.
+    while not wasWon:
+        print("Increasing the goal by one move.")
+        for sit in sitList:
+            sit.goal += 1
+        input("Press enter to proceed.")
+        wasWon = attempt_to_win(sitList)
     t2 = time.time()
     duration = t2 - t1
     print("Duration:",duration)

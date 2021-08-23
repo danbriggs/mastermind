@@ -69,7 +69,7 @@ class Situation:
             if self.numguesses_dict[result] is None and (
                 max_node_size is None or len(codelist) <= max_node_size):
                 success = False
-                if len(codelist) <= 10:
+                if len(codelist) <= 14: #incorrectly had 10 before
                     #Try all codes to see if any splits codelist completely
                     for guess in all_codes: #This takes long :(
                         if dissolves(codelist, guess):
@@ -82,19 +82,19 @@ class Situation:
                 #Now we know that no single guess after self.guess dissolves codelist,
                 #so cannot guarantee end in another 2 moves. If we're gunning to be
                 #done in another 3 moves, any guess whose split leaves a cluster
-                #of size greater than 10 may be thrown out.
+                #of size greater than 14 may be thrown out.
                 if not do_recurse:
                     continue #Would take too long otherwise
                 answer = None
                 bestGuess = None
-                if len(codelist) <= 100:
+                if len(codelist) <= 196: #incorrectly had 100 before
                     noisy = False
                     if result==(0,2) and len(codelist)==36:
                         noisy = True
                         print("Turning the noise on")
                     for guess in all_codes:
                         next_turn = Situation(guess,codelist)
-                        next_turn.compute_nodes(max_node_size=10, do_recurse = False)
+                        next_turn.compute_nodes(max_node_size=14, do_recurse = False) #note 14
                         if next_turn.done():
                             val = next_turn.numTurns()
                             if answer is None or val < answer:
@@ -231,16 +231,16 @@ def main():
         #sit.pretty_print()
 
     #first_strings = ['RRRR','RRRO','RROO','RROY','ROYG']
-    first_strings = ['RROY']
+    first_string = input("Initial guess? Use ROYGBV e.g., RROY:")
+    first_strings = [first_string]
     first_guesses = [list(s) for s in first_strings]
-    #Since 1296 > 1000, there is no way to guarantee end in 4 guesses.
-    #Thus, if RROY can guarantee a finish in 5 guesses, the answer is 5.
     print('first guesses',first_strings)
     t1 = time.time()
     for guess in first_guesses[::-1]:
         sit = Situation(guess, all_codes)
         #sit.pretty_print()
-        sit.compute_nodes(max_node_size=300) #Attempts to compute the nodes for 'RROY'
+        sit.compute_nodes(max_node_size=700) #Attempts to compute the nodes for your first guess.
+        #Lower the max_node_size if you'd prefer an incomplete but faster run.
         sit.pretty_print()
     t2 = time.time()
     duration = t2 - t1
